@@ -16,16 +16,14 @@
 		GPIOA->AFR[1] |=  (0x01 << 0); // AF1 = TIM1_CH1
 		TIM1->PSC = 15;
 		TIM1->ARR = 19999;
-		TIM1->CCR1 = 2000; 
+		TIM1->CCR1 = 1000;
 		TIM1->CCMR1 &= ~(7 << 4);
 		TIM1->CCMR1 |=  (6 << 4);
 		TIM1->CCER |=1<<0;
 		TIM1->BDTR |=1<<15;
 		TIM1->CR1 |= 1<<0;
-		HAL_Delay(1000);
-		TIM1->CCR1 = 1000;
-		HAL_Delay(3000);
-		TIM1->CCR1 = 1300;
+		HAL_Delay(4000);
+		TIM1->CCR1 = 1500;
 	}
 	void GPIO_INIT(void)
 	{
