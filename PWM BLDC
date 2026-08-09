@@ -1,0 +1,66 @@
+	#include "main.h"
+	#include <stdint.h>
+
+	#define RCC_AHB1ENR ((volatile uint32_t *)0x40023830)
+	#define RCC_APB2ENR ((volatile uint32_t *)0x40023844)
+	#define GPIOA_MODER ((volatile uint32_t *)0x40020000)
+	#define GPIOA_OTYPER ((volatile uint32_t *)0x40020004)
+	#define GPIOA_ODR ((volatile uint32_t *)0x40020014)
+	#define TIM1_Base (volatile uint32_t *)0x40010000
+	void TIMER_INIT(){
+		RCC->AHB1ENR |= (1 << 0);
+		RCC->APB2ENR |= (1 << 0);
+		*GPIOA_MODER &= ~(3 << (8 * 2));
+		*GPIOA_MODER |=  (0x02 << (8 * 2));
+		GPIOA->AFR[1] &= ~(0xF << 0);  // clear nibble c?a PA8 tru?c
+		GPIOA->AFR[1] |=  (0x01 << 0); // AF1 = TIM1_CH1
+		TIM1->PSC = 15;
+		TIM1->ARR = 19999;
+		TIM1->CCR1 = 2000; 
+		TIM1->CCMR1 &= ~(7 << 4);
+		TIM1->CCMR1 |=  (6 << 4);
+		TIM1->CCER |=1<<0;
+		TIM1->BDTR |=1<<15;
+		TIM1->CR1 |= 1<<0;
+		HAL_Delay(1000);
+		TIM1->CCR1 = 1000;
+		HAL_Delay(3000);
+		TIM1->CCR1 = 1300;
+	}
+	void GPIO_INIT(void)
+	{
+			// Enable clock GPIOA
+			*RCC_AHB1ENR |= (1 << 0);
+
+			// PA1 = Output
+			*GPIOA_MODER &= ~(3 << (1 * 2));
+			*GPIOA_MODER |=  (1 << (1 * 2));
+		
+			// PA8 AF
+			*GPIOA_MODER &= ~(3 << (8 * 2));
+			*GPIOA_MODER |=  (0x02 << (8 * 2));
+
+			// Push Pull
+			*GPIOA_OTYPER &= ~(1 << 1);
+	}
+
+	void LED_CONTROL(void)
+	{
+			*GPIOA_ODR |= (1 << 1);
+			HAL_Delay(1000);
+
+			*GPIOA_ODR &= ~(1 << 1);
+			HAL_Delay(1000);
+	}
+
+	int main(void)
+	{
+    HAL_Init();
+
+    GPIO_INIT();
+    TIMER_INIT();
+
+			while (1)
+			{
+			}
+	}
