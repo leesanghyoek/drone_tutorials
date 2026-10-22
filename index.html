@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gimbal góc Euler</title>
+<style>
+:root{
+  --bg:#ffffff;--text-primary:#1f1f1f;--text-secondary:#5c5c5c;--text-tertiary:#9a9a9a;
+  --border:rgba(0,0,0,.15);--btn-bg:#f4f4f4;--radius:8px;
+  --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#1e1e1e;--text-primary:#ececec;--text-secondary:#b0b0b0;--text-tertiary:#7a7a7a;--border:rgba(255,255,255,.18);--btn-bg:#2b2b2b;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font-sans)}
+main{max-width:760px;margin:0 auto;padding:24px 16px}
+h1{font-size:22px;font-weight:500;margin:0 0 6px}
+.lead{font-size:14px;color:var(--text-secondary);margin:0 0 16px;line-height:1.6}
+.gr{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin:0 0 6px}
+@media(max-width:560px){.gr{grid-template-columns:1fr}}
+.sub{font-size:13px;font-weight:500;margin:4px 0}
+.rw{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);margin:2px 0}
+.rw label{min-width:110px}
+.rw input{flex:1}
+.vl{min-width:50px;text-align:right;font-family:var(--font-mono);color:var(--text-primary)}
+button{font:inherit;font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--btn-bg);color:var(--text-primary);cursor:pointer}
+button:hover{filter:brightness(.97)}
+svg{display:block;width:100%;height:auto}
+.cds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
+@media(max-width:600px){.cds{grid-template-columns:1fr}}
+.cd{border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--text-secondary);line-height:1.6}
+.cd b{color:var(--text-primary);font-weight:500}
+.mono{font-family:var(--font-mono);color:var(--text-primary)}
+.tips{font-size:14px;color:var(--text-secondary);line-height:1.7;margin-top:18px}
+.tips b{color:var(--text-primary);font-weight:500}
+</style>
+</head>
+<body>
+<main>
+<h1>Gimbal góc Euler: ψ, ψ̇ và ω</h1>
+<p class="lead">Thứ tự quay nội tại (z, y′, x″): vòng tím là yaw α, vòng cam là pitch β, drone ở trong cùng là roll γ.
+ψ là góc của 3 khớp, ψ̇ là tốc độ 3 motor khớp (chạy cùng lúc), ω = T(ψ)·ψ̇ là vận tốc góc thật của drone theo trục thân (gyro đo).
+Hệ trục: x trước, y trái, z lên.</p>
+
+<div class="gr">
+<div><div class="sub">ψ: góc của 3 khớp (độ)</div>
+<div class="rw"><label for="a">Yaw α (vòng tím)</label><input id="a" type="range" min="-180" max="180" step="1" value="0"><span class="vl" id="av"></span></div>
+<div class="rw"><label for="b">Pitch β (vòng cam)</label><input id="b" type="range" min="-180" max="180" step="1" value="0"><span class="vl" id="bv"></span></div>
+<div class="rw"><label for="g">Roll γ (drone)</label><input id="g" type="range" min="-180" max="180" step="1" value="40"><span class="vl" id="gv"></span></div>
+</div>
+<div><div class="sub">ψ̇: tốc độ 3 motor khớp (rad/s)</div>
+<div class="rw"><label for="ad">α̇ (yaw)</label><input id="ad" type="range" min="-1" max="1" step="0.1" value="0.5"><span class="vl" id="adv"></span></div>
+<div class="rw"><label for="bd">β̇ (pitch)</label><input id="bd" type="range" min="-1" max="1" step="0.1" value="0"><span class="vl" id="bdv"></span></div>
+<div class="rw"><label for="gd">γ̇ (roll)</label><input id="gd" type="range" min="-1" max="1" step="0.1" value="0"><span class="vl" id="gdv"></span></div>
+<div style="display:flex;gap:8px;margin-top:6px"><button id="pp">Chạy ▶</button><button id="rs">Đặt lại</button></div>
+</div>
+</div>
+
+<svg viewBox="0 0 680 380" role="img" aria-label="Gimbal ba vòng: vòng tím yaw, vòng cam pitch, drone roll">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g id="sg"></g></svg>
+
+<div class="cds">
+<div class="cd"><b>ψ: drone đang nằm thế nào</b><br><span class="mono" id="o1"></span></div>
+<div class="cd"><b>ψ̇: 3 motor khớp quay bao nhanh</b><br><span class="mono" id="o2"></span><br>Cả 3 chạy cùng lúc</div>
+<div class="cd"><b>ω = T(ψ)·ψ̇: drone quay thật (gyro đo)</b><br><span class="mono" id="o3"></span></div>
+</div>
+
+<div class="tips">
+<b>Thử:</b><br>
+1. Mặc định (roll 40°, chỉ motor yaw chạy), bấm Chạy: ψ̇ = (0, 0, 0.5) nhưng ω có cả ωy và ωz.<br>
+2. Cho cả 3 motor chạy: 3 khớp quay đồng thời; thứ tự chỉ thể hiện ở việc vòng ngoài mang theo vòng trong.<br>
+3. Đặt cả 3 góc về 0°: lúc đó ω = ψ̇.<br>
+4. Đặt pitch β = 90°: trục roll trùng trục yaw → gimbal lock.
+</div>
+</main>
+
+<script>
+const sg=document.getElementById('sg');const cx=320,cy=195,S=92,az=-40*Math.PI/180,el=22*Math.PI/180;
+function P(v){const ca=Math.cos(az),sa=Math.sin(az);const x=v[0]*ca-v[1]*sa,y=v[0]*sa+v[1]*ca,z=v[2];return [cx+S*y,cy-S*(-x*Math.sin(el)+z*Math.cos(el))];}
+const sc=(a,k)=>a.map(t=>t*k),ad=(a,b)=>a.map((t,i)=>t+b[i]);
+function L(a,b,c,w,dash,mk){const p=P(a),q=P(b);return `<line x1="${p[0].toFixed(1)}" y1="${p[1].toFixed(1)}" x2="${q[0].toFixed(1)}" y2="${q[1].toFixed(1)}" stroke="${c}" stroke-width="${w}" ${dash?'stroke-dasharray="4 4"':''} ${mk?'marker-end="url(#ah)"':''} stroke-linecap="round"/>`;}
+function ring(u,v,r,c,w){let pts=[];for(let k=0;k<=72;k++){const t=2*Math.PI*k/72;pts.push(P(ad(sc(u,r*Math.cos(t)),sc(v,r*Math.sin(t)))).map(n=>n.toFixed(1)).join(','));}return `<polyline points="${pts.join(' ')}" fill="none" stroke="${c}" stroke-width="${w}"/>`;}
+function T(v,s,c){const p=P(v);return `<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}" text-anchor="middle" dominant-baseline="central" style="font-family:var(--font-sans);font-size:12px;font-weight:500;fill:${c}">${s}</text>`;}
+const E=id=>document.getElementById(id);
+let st={a:0,b:0,g:40},play=false,last=null;
+function wrap(d){return ((d+180)%360+360)%360-180;}
+function f(n){return (n>=0?'+':'')+n.toFixed(2);}
+function draw(){
+  const D=Math.PI/180,a=st.a*D,b=st.b*D,g=st.g*D;
+  const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cg=Math.cos(g),sgm=Math.sin(g);
+  const Z=[0,0,1],xa1=[ca,sa,0],ya1=[-sa,ca,0];
+  const xa2=ad(sc(xa1,cb),sc(Z,-sb)),za2=ad(sc(xa1,sb),sc(Z,cb)),ya2=ya1;
+  const xB=xa2,yB=ad(sc(ya2,cg),sc(za2,sgm)),zB=ad(sc(ya2,-sgm),sc(za2,cg));
+  let h='';
+  h+=L([0,0,-2.0],[0,0,-1.55],'var(--text-tertiary)',4,false,false);
+  h+=L([-0.5,0,-2.0],[0.5,0,-2.0],'var(--text-tertiary)',4,false,false);
+  h+=L([0,0,1.55],[0,0,1.85],'var(--text-tertiary)',4,false,false);
+  h+=L([0,0,-1.95],[0,0,1.95],'#7F77DD',1,true,false)+T([0,0,2.08],'trục yaw','#7F77DD');
+  h+=ring(ya1,Z,1.55,'#7F77DD',3);
+  h+=L(sc(ya1,-1.75),sc(ya1,1.75),'#BA7517',1,true,false)+T(sc(ya1,1.92),'trục pitch','#BA7517');
+  h+=L(sc(ya1,1.25),sc(ya1,1.55),'#BA7517',3,false,false)+L(sc(ya1,-1.25),sc(ya1,-1.55),'#BA7517',3,false,false);
+  h+=ring(xa2,ya2,1.25,'#BA7517',3);
+  h+=L(sc(xB,0.8),sc(xB,1.25),'#D85A30',3,false,false)+L(sc(xB,-0.8),sc(xB,-1.25),'#D85A30',3,false,false);
+  const s2=Math.SQRT1_2;
+  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(q=>{const r=sc(ad(sc(xB,q[0]*s2),sc(yB,q[1]*s2)),0.72);h+=L([0,0,0],r,'var(--text-secondary)',4,false,false);const p=P(r);h+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="7" fill="none" stroke="var(--text-secondary)" stroke-width="1"/>`;});
+  h+=L([0,0,0],sc(xB,1.05),'#D85A30',2.5,false,true)+T(sc(xB,1.42),'mũi (trục roll)','#D85A30');
+  h+=L([0,0,0],sc(zB,0.8),'#378ADD',2.5,false,true)+T(sc(zB,0.95),'nóc','#378ADD');
+  const o=P([0,0,0]);h+=`<circle cx="${o[0]}" cy="${o[1]}" r="3" fill="var(--text-primary)"/>`;
+  sg.innerHTML=h;
+  const ad_=+E('ad').value,bd=+E('bd').value,gd=+E('gd').value;
+  const w=[gd-sb*ad_, cg*bd+sgm*cb*ad_, -sgm*bd+cg*cb*ad_];
+  E('o1').innerHTML=`γ = ${st.g.toFixed(0)}°<br>β = ${st.b.toFixed(0)}°<br>α = ${st.a.toFixed(0)}°`;
+  E('o2').innerHTML=`γ̇ = ${f(gd)}<br>β̇ = ${f(bd)}<br>α̇ = ${f(ad_)}`;
+  E('o3').innerHTML=`ωx = ${f(w[0])}<br>ωy = ${f(w[1])}<br>ωz = ${f(w[2])}`;
+  E('av').textContent=st.a.toFixed(0)+'°';E('bv').textContent=st.b.toFixed(0)+'°';E('gv').textContent=st.g.toFixed(0)+'°';
+  E('adv').textContent=ad_.toFixed(1);E('bdv').textContent=bd.toFixed(1);E('gdv').textContent=gd.toFixed(1);
+}
+function fromSliders(){st.a=+E('a').value;st.b=+E('b').value;st.g=+E('g').value;draw();}
+['a','b','g'].forEach(i=>E(i).addEventListener('input',fromSliders));
+['ad','bd','gd'].forEach(i=>E(i).addEventListener('input',draw));
+E('pp').onclick=()=>{play=!play;last=null;E('pp').textContent=play?'Dừng ❚❚':'Chạy ▶';};
+E('rs').onclick=()=>{E('a').value=0;E('b').value=0;E('g').value=40;E('ad').value=0.5;E('bd').value=0;E('gd').value=0;fromSliders();};
+function loop(ts){if(play){if(last!==null){const h=Math.min(0.05,(ts-last)/1000),R=180/Math.PI;st.a=wrap(st.a+(+E('ad').value)*h*R);st.b=wrap(st.b+(+E('bd').value)*h*R);st.g=wrap(st.g+(+E('gd').value)*h*R);E('a').value=Math.round(st.a);E('b').value=Math.round(st.b);E('g').value=Math.round(st.g);draw();}last=ts;}requestAnimationFrame(loop);}
+fromSliders();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
