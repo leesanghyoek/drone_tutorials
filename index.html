@@ -102,12 +102,12 @@ Hệ trục: x trước, y trái, z lên.</p>
 
 <section id="er">
 <h2>Tốc độ góc Euler: quay lần lượt và quay đồng thời</h2>
-<p>Tư thế được định nghĩa theo thứ tự Z-Y-X: <b>R = R<sub>z</sub>(ψ)·R<sub>y</sub>(θ)</b>. Trang này so sánh hai cách đi từ tư thế ban đầu tới cùng một tư thế đích, mỗi khớp quay với cùng một tốc độ:</p>
+<p>Tư thế được định nghĩa theo thứ tự Z-Y-X: <b>R = R<sub>z</sub>(ψ)·R<sub>y</sub>(θ)·R<sub>x</sub>(φ)</b>. Phần này so sánh các cách đi từ tư thế ban đầu tới cùng một tư thế đích, mỗi khớp quay với cùng một tốc độ:</p>
 <p>Lưu ý: phần này dùng hệ <b>NED</b> (x Bắc, y Đông, z xuống), khác với hệ x trước, y trái, z lên của mô phỏng phía trên.</p>
 <ul>
-<li><b>A</b>: quay yaw cho xong, sau đó mới quay pitch.</li>
-<li><b>B</b>: yaw và pitch quay <b>cùng lúc</b> (tốc độ góc Euler ψ̇, θ̇ cùng khác 0). Trục pitch bị vòng yaw kéo theo tại từng thời điểm.</li>
-<li><b>C</b> (tùy chọn): yaw và pitch quay cùng lúc nhưng pitch quanh trục y <b>cố định của NED</b>. Cách này không tới đúng tư thế đích.</li>
+<li><b>A</b>: quay lần lượt từng thành phần: yaw xong, rồi pitch, rồi roll.</li>
+<li><b>B</b>: yaw, pitch, roll quay <b>cùng lúc</b> (tốc độ góc Euler ψ̇, θ̇, φ̇ cùng khác 0). Trục pitch bị vòng yaw kéo theo, trục roll bị vòng pitch kéo theo, tại từng thời điểm.</li>
+<li><b>C</b> (tùy chọn): cùng lúc quay quanh ba trục <b>cố định của NED</b> (z, y, x). Cách này không tới đúng tư thế đích.</li>
 </ul>
 
 <canvas id="er-cv"></canvas>
@@ -119,15 +119,21 @@ Hệ trục: x trước, y trái, z lên.</p>
 <span class="lg"><span class="dot" style="background:#378ADD"></span>vòng pitch</span>
 <span class="lg"><span class="dot" style="background:#7F77DD"></span>vòng roll</span>
 </div>
+<p style="font-size:12px;margin:2px 0">Nét đậm: quỹ đạo <b>mũi</b> (trục x thân). Nét mảnh: quỹ đạo <b>cánh phải</b> (trục y thân). Vòng tròn nét đứt: vị trí đích.</p>
 
 <div class="bar">
 <span>Hiện gimbal của:</span>
 <button id="er-gA" onclick="ER.setG('A')">A</button>
 <button id="er-gB" class="on" onclick="ER.setG('B')">B</button>
 <button id="er-gN" onclick="ER.setG('N')">Ẩn</button>
-<span style="margin-left:12px">Hiện quỹ đạo C:</span>
+<span style="margin-left:12px">Quỹ đạo C:</span>
 <button id="er-cOn" onclick="ER.setC(true)">Có</button>
 <button id="er-cOff" class="on" onclick="ER.setC(false)">Không</button>
+</div>
+<div class="bar">
+<span>Vẽ quỹ đạo của:</span>
+<button id="er-tN" class="on" onclick="ER.setT('N')">Mũi</button>
+<button id="er-tW" class="on" onclick="ER.setT('W')">Cánh phải</button>
 </div>
 
 <div class="row">
@@ -135,37 +141,40 @@ Hệ trục: x trước, y trái, z lên.</p>
 <input type="range" id="er-t" min="0" value="0" oninput="ER.draw()">
 <span id="er-tv"></span>
 </div>
+<div id="er-phase" style="font-size:13px;color:var(--text-secondary);min-height:20px"></div>
 
 <div class="tbl"><table>
-<tr><td class="h"></td><td class="h">ψ, θ</td><td class="h">Tốc độ khớp ψ̇, θ̇ (rad/s)</td><td class="h">Gyro đo p, q, r (rad/s)</td><td class="h">Mũi drone (N, E, D)</td></tr>
-<tr><td style="color:#BA7517">A</td><td id="er-a1"></td><td id="er-a2"></td><td id="er-a4"></td><td id="er-a3"></td></tr>
-<tr><td style="color:#1D9E75">B</td><td id="er-b1"></td><td id="er-b2"></td><td id="er-b4"></td><td id="er-b3"></td></tr>
-<tr id="er-cRow" style="display:none"><td style="color:#D85A30">C</td><td>không định nghĩa</td><td>—</td><td id="er-c4"></td><td id="er-c3"></td></tr>
+<tr><td class="h"></td><td class="h">ψ, θ, φ</td><td class="h">ψ̇, θ̇, φ̇ (rad/s)</td><td class="h">Gyro p, q, r (rad/s)</td><td class="h">Mũi (N, E, D)</td><td class="h">Cánh phải (N, E, D)</td></tr>
+<tr><td style="color:#BA7517">A</td><td id="er-a1"></td><td id="er-a2"></td><td id="er-a4"></td><td id="er-a3"></td><td id="er-a5"></td></tr>
+<tr><td style="color:#1D9E75">B</td><td id="er-b1"></td><td id="er-b2"></td><td id="er-b4"></td><td id="er-b3"></td><td id="er-b5"></td></tr>
+<tr id="er-cRow" style="display:none"><td style="color:#D85A30">C</td><td>không định nghĩa</td><td>—</td><td id="er-c4"></td><td id="er-c3"></td><td id="er-c5"></td></tr>
 </table></div>
 
 <h3>Thông số</h3>
 <div class="grid">
-<div class="row"><label for="er-psT">ψ đích (yaw)</label><input type="range" id="er-psT" min="10" max="180" value="60" oninput="ER.rebuild()"><span id="er-psTv"></span></div>
-<div class="row"><label for="er-thT">θ đích (pitch)</label><input type="range" id="er-thT" min="10" max="85" value="60" oninput="ER.rebuild()"><span id="er-thTv"></span></div>
+<div class="row"><label for="er-psT">ψ đích (yaw)</label><input type="range" id="er-psT" min="0" max="180" value="60" oninput="ER.rebuild()"><span id="er-psTv"></span></div>
+<div class="row"><label for="er-thT">θ đích (pitch)</label><input type="range" id="er-thT" min="0" max="85" value="45" oninput="ER.rebuild()"><span id="er-thTv"></span></div>
+<div class="row"><label for="er-phT">φ đích (roll)</label><input type="range" id="er-phT" min="0" max="180" value="60" oninput="ER.rebuild()"><span id="er-phTv"></span></div>
 <div class="row"><label for="er-w0">Tốc độ mỗi khớp</label><input type="range" id="er-w0" min="5" max="50" value="10" oninput="ER.rebuild()"><span id="er-w0v"></span></div>
-<div class="row"><label for="er-spd">Tốc độ phát</label><input type="range" id="er-spd" min="1" max="8" value="2" oninput="ER.draw()"><span id="er-spdv"></span></div>
+<div class="row"><label for="er-spd">Tốc độ phát</label><input type="range" id="er-spd" min="1" max="8" value="3" oninput="ER.draw()"><span id="er-spdv"></span></div>
 </div>
 <div class="warn" id="er-warn"></div>
 
 <h3>Ký hiệu</h3>
 <div class="tbl"><table>
 <tr><td class="h">ψ, θ, φ</td><td>góc yaw, pitch, roll (góc của 3 khớp gimbal)</td></tr>
-<tr><td class="h">ψ̇, θ̇</td><td>tốc độ góc Euler = tốc độ quay của từng khớp gimbal</td></tr>
+<tr><td class="h">ψ̇, θ̇, φ̇</td><td>tốc độ góc Euler = tốc độ quay của từng khớp gimbal</td></tr>
 <tr><td class="h">p, q, r</td><td>vận tốc góc của drone theo trục thân (mũi, cánh phải, bụng), thứ gyro đo</td></tr>
 <tr><td class="h">N, E, D</td><td>hệ toàn cục: Bắc, Đông, xuống đất</td></tr>
 </table></div>
-<p>Quan hệ (với φ = 0): p = −sin θ·ψ̇, q = θ̇, r = cos θ·ψ̇. Trong cách B tốc độ khớp giữ nguyên, nhưng p, q, r thay đổi theo θ.</p>
+<p>Quan hệ: p = φ̇ − sin θ·ψ̇, &nbsp; q = cos φ·θ̇ + sin φ cos θ·ψ̇, &nbsp; r = −sin φ·θ̇ + cos φ cos θ·ψ̇. Trong cách B tốc độ khớp giữ nguyên, nhưng p, q, r thay đổi theo θ và φ.</p>
 
 <h3>Gợi ý quan sát</h3>
 <ul>
-<li>Bấm <b>Chạy</b>: A trượt ngang trước rồi mới ngóc lên, B đi đường cong chéo. Cả hai kết thúc tại vòng tròn nét đứt (tư thế đích).</li>
-<li>Chọn gimbal <b>B</b>: trục pitch (nét đứt xanh dương) bị vòng yaw kéo xoay theo trong lúc vòng pitch đang quay. Đó là lý do B tới đúng đích.</li>
-<li>Bật quỹ đạo <b>C</b>: cùng quay đồng thời, cùng tốc độ, nhưng trục pitch đứng yên theo NED nên về sai chỗ.</li>
+<li>Bấm <b>Chạy</b>. A đi ba đoạn: mũi trượt ngang (yaw), mũi ngóc lên (pitch), rồi mũi đứng yên còn cánh phải quét một cung (roll). B đi một đường cong liền. Cả hai kết thúc tại cùng vòng tròn đích.</li>
+<li>Trong pha roll của A, quỹ đạo mũi dừng lại: roll quay quanh chính trục mũi. Vì vậy phải nhìn quỹ đạo cánh phải mới thấy roll.</li>
+<li>Chọn gimbal <b>B</b>: trục pitch bị vòng yaw kéo theo và trục roll bị vòng pitch kéo theo ngay trong lúc chúng đang quay. Đó là lý do B tới đúng đích.</li>
+<li>Bật quỹ đạo <b>C</b>: cùng quay đồng thời, cùng tốc độ, nhưng trục quay đứng yên theo NED nên về sai chỗ.</li>
 <li>Kéo chuột trên hình để xoay góc nhìn.</li>
 </ul>
 </section>
@@ -222,9 +231,9 @@ fromSliders();requestAnimationFrame(loop);
 </script>
 <script>
 (()=>{
-const D=Math.PI/180,$=id=>document.getElementById('er-'+id),h=0.01;
-let az=35*D,el=22*D,playing=false,last=null,gm='B',showC=false;
-let W0,PS,TH,T1,T2,TE,MX,RC=[];
+const D=Math.PI/180,$=id=>document.getElementById('er-'+id),h=0.01,L=1.25,LW=0.95;
+let az=35*D,el=22*D,playing=false,last=null,gm='B',showC=false,showN=true,showW=true;
+let W0,TG=[0,0,0],TS=[0,0,0],TE,MX,RC=[];
 const cv=$('cv'),ctx=cv.getContext('2d');
 const mm=(A,B)=>A.map(r=>[0,1,2].map(j=>r[0]*B[0][j]+r[1]*B[1][j]+r[2]*B[2][j]));
 const mv=(M,v)=>[0,1,2].map(i=>M[i][0]*v[0]+M[i][1]*v[1]+M[i][2]*v[2]);
@@ -233,18 +242,26 @@ const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
 const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];const sc=(v,k)=>v.map(x=>x*k);
 const Rz=p=>[[Math.cos(p),-Math.sin(p),0],[Math.sin(p),Math.cos(p),0],[0,0,1]];
 const Ry=t=>[[Math.cos(t),0,Math.sin(t)],[0,1,0],[-Math.sin(t),0,Math.cos(t)]];
-const Rof=a=>mm(Rz(a[0]),Ry(a[1]));const L=1.25;
+const Rx=f=>[[1,0,0],[0,Math.cos(f),-Math.sin(f)],[0,Math.sin(f),Math.cos(f)]];
+const Rof=a=>mm(mm(Rz(a[0]),Ry(a[1])),Rx(a[2]));
 function rod(w,dt){const n=Math.hypot(...w),a=n*dt;if(a<1e-12)return [[1,0,0],[0,1,0],[0,0,1]];const k=w.map(x=>x/n);const K=[[0,-k[2],k[1]],[k[2],0,-k[0]],[-k[1],k[0],0]];const K2=mm(K,K);return [0,1,2].map(i=>[0,1,2].map(j=>(i==j?1:0)+Math.sin(a)*K[i][j]+(1-Math.cos(a))*K2[i][j]));}
-function ang(t,m){if(m=='A')return[Math.min(W0*t,PS),Math.max(0,Math.min(W0*(t-T1),TH))];return[Math.min(W0*t,PS),Math.min(W0*t,TH)];}
-function rate(t,m){if(m=='A')return t<T1?[W0,0]:(t<T1+T2?[0,W0]:[0,0]);return[t<T1?W0:0,t<T2?W0:0];}
-function rateC(t){return[0,t<T2?W0:0,t<T1?W0:0];}
+// góc [ψ,θ,φ] tại thời điểm t
+function ang(t,m){if(m=='A'){let s=t;return TG.map((g,i)=>{const v=Math.max(0,Math.min(W0*s,g));s-=TS[i];return v;});}return TG.map(g=>Math.min(W0*t,g));}
+// tốc độ khớp [ψ̇,θ̇,φ̇] tại thời điểm t
+function rate(t,m){if(m=='A'){let s=0;return TS.map(d=>{const on=t>=s&&t<s+d;s+=d;return on?W0:0;});}return TS.map(d=>t<d?W0:0);}
+// C: ω viết theo NED, quanh x (roll), y (pitch), z (yaw) cố định
+function rateC(t){return[t<TS[2]?W0:0,t<TS[1]?W0:0,t<TS[0]?W0:0];}
+function pqr(a,r){const st=Math.sin(a[1]),ct=Math.cos(a[1]),sf=Math.sin(a[2]),cf=Math.cos(a[2]);
+  return[r[2]-st*r[0],cf*r[1]+sf*ct*r[0],-sf*r[1]+cf*ct*r[0]];}
 function rebuild(){
-  W0=+$('w0').value/100;PS=+$('psT').value*D;TH=+$('thT').value*D;T1=PS/W0;T2=TH/W0;TE=T1+T2;MX=Math.round(TE*100);
-  $('psTv').textContent=$('psT').value+'°';$('thTv').textContent=$('thT').value+'°';$('w0v').textContent=W0.toFixed(2).replace('.',',')+' rad/s';
+  W0=+$('w0').value/100;TG=['psT','thT','phT'].map(k=>+$(k).value*D);TS=TG.map(g=>g/W0);
+  TE=TS[0]+TS[1]+TS[2];MX=Math.max(1,Math.round(TE*100));
+  ['psT','thT','phT'].forEach(k=>$(k+'v').textContent=$(k).value+'°');
+  $('w0v').textContent=W0.toFixed(2).replace('.',',')+' rad/s';
   const tt=$('t');tt.max=MX;if(+tt.value>MX)tt.value=MX;
   RC=[];let R=[[1,0,0],[0,1,0],[0,0,1]];RC.push(R);const N=Math.round(TE/h);
   for(let i=0;i<N;i++){R=mm(rod(rateC(i*h),h),R);RC.push(R);}
-  $('warn').textContent=+$('thT').value>=75?'θ gần 90°: vòng roll gần trùng trục với vòng yaw (gần gimbal lock).':'';
+  $('warn').textContent=+$('thT').value>=75?'θ gần 90°: trục roll gần trùng trục yaw (gần gimbal lock).':'';
   draw();
 }
 const RCat=t=>RC[Math.min(RC.length-1,Math.round(t/h))];
@@ -255,9 +272,10 @@ const P=v=>[cx+S*dot(v,right),cy+S*dot(v,down)];
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function setG(g){gm=g;['A','B','N'].forEach(k=>$('g'+k).classList.toggle('on',k==g));draw();}
 function setC(v){showC=v;$('cOn').classList.toggle('on',v);$('cOff').classList.toggle('on',!v);$('cRow').style.display=v?'':'none';draw();}
-function arrow(v,c,w){const A=P([0,0,0]),B=P(v),g=Math.atan2(B[1]-A[1],B[0]-A[0]);ctx.globalAlpha=1;ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();ctx.beginPath();ctx.moveTo(B[0],B[1]);ctx.lineTo(B[0]-10*Math.cos(g-0.4),B[1]-10*Math.sin(g-0.4));ctx.lineTo(B[0]-10*Math.cos(g+0.4),B[1]-10*Math.sin(g+0.4));ctx.closePath();ctx.fill();}
-function trail(f,t,c,dash){ctx.globalAlpha=1;ctx.strokeStyle=c;ctx.lineWidth=2.2;ctx.setLineDash(dash||[]);ctx.beginPath();for(let s=0;s<=t+1e-9;s+=0.1){const q=P(sc(f(s),L));s==0?ctx.moveTo(q[0],q[1]):ctx.lineTo(q[0],q[1]);}const q=P(sc(f(t),L));ctx.lineTo(q[0],q[1]);ctx.stroke();ctx.setLineDash([]);}
-function gimbal(a){const F1=Rz(a[0]),F2=mm(F1,Ry(a[1])),F3=F2,segs=[],ex=[1,0,0],ey=[0,1,0],ez=[0,0,1];
+function setT(k){if(k=='N')showN=!showN;else showW=!showW;if(!showN&&!showW){k=='N'?showW=true:showN=true;}$('tN').classList.toggle('on',showN);$('tW').classList.toggle('on',showW);draw();}
+function arrow(v,c,w){const A=P([0,0,0]),B=P(v),g=Math.atan2(B[1]-A[1],B[0]-A[0]);ctx.globalAlpha=1;ctx.setLineDash([]);ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();ctx.beginPath();ctx.moveTo(B[0],B[1]);ctx.lineTo(B[0]-9*Math.cos(g-0.4),B[1]-9*Math.sin(g-0.4));ctx.lineTo(B[0]-9*Math.cos(g+0.4),B[1]-9*Math.sin(g+0.4));ctx.closePath();ctx.fill();}
+function trail(Rt,ax,len,t,c,w,dash){ctx.globalAlpha=1;ctx.strokeStyle=c;ctx.lineWidth=w;ctx.setLineDash(dash||[]);ctx.beginPath();for(let s=0;s<=t+1e-9;s+=0.1){const q=P(sc(mv(Rt(s),ax),len));s==0?ctx.moveTo(q[0],q[1]):ctx.lineTo(q[0],q[1]);}const q=P(sc(mv(Rt(t),ax),len));ctx.lineTo(q[0],q[1]);ctx.stroke();ctx.setLineDash([]);}
+function gimbal(a){const F1=Rz(a[0]),F2=mm(F1,Ry(a[1])),F3=mm(F2,Rx(a[2])),segs=[],ex=[1,0,0],ey=[0,1,0],ez=[0,0,1];
   function ring(F,u,v,r,c){const n=64;for(let i=0;i<n;i++){const a1=i/n*2*Math.PI,a2=(i+1)/n*2*Math.PI;segs.push({a:mv(F,u.map((x,k)=>(x*Math.cos(a1)+v[k]*Math.sin(a1))*r)),b:mv(F,u.map((x,k)=>(x*Math.cos(a2)+v[k]*Math.sin(a2))*r)),c,w:4});}}
   ring(F1,ey,ez,1.65,'#E8593C');ring(F2,ex,ey,1.45,'#378ADD');ring(F3,ex,ez,1.0,'#7F77DD');
   segs.push({a:[0,0,-2],b:[0,0,-1.65],c:'#888780',w:3});segs.push({a:[0,0,1.65],b:[0,0,2.05],c:'#888780',w:3});
@@ -270,24 +288,28 @@ function gimbal(a){const F1=Rz(a[0]),F2=mm(F1,Ry(a[1])),F3=F2,segs=[],ex=[1,0,0]
   segs.forEach(s=>{const A=P(s.a),B=P(s.b);ctx.globalAlpha=0.18+0.37*Math.max(0,Math.min(1,(1-s.d/1.7)/2));ctx.strokeStyle=s.c;ctx.lineWidth=s.w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();});ctx.globalAlpha=1;}
 const f2=x=>(Math.abs(x)<5e-4?0:x).toFixed(2).replace('.',',');
 const vec=v=>'['+v.map(f2).join('; ')+']';
-function pqr(a,r){const th=a[1];return[-Math.sin(th)*r[0],r[1],Math.cos(th)*r[0]];}
+const deg=a=>a.map(x=>(x/D).toFixed(0)+'°').join(', ');
+function phase(t){const s1=TS[0],s2=s1+TS[1];
+  const pa=t<s1?'yaw':t<s2?'pitch':t<TE?'roll':'xong';const pb=t<Math.max(...TS)?'yaw, pitch, roll cùng chạy (khớp nào tới đích thì dừng)':'xong';
+  return 'A đang quay: <b>'+pa+'</b> &nbsp;·&nbsp; B: <b>'+pb+'</b>';}
 function draw(){if(!Wd||!W0)return;cam();const t=+$('t').value/100;
   $('tv').textContent=t.toFixed(1).replace('.',',')+' s';$('spdv').textContent='×'+$('spd').value;
   ctx.clearRect(0,0,Wd,H);const T=css('--text-secondary')||'#888780',O=[0,0,0];
   [[[1.9,0,0],'N'],[[0,1.9,0],'E'],[[0,0,1.9],'D']].forEach(([v,s])=>{const A=P(O),B=P(v);ctx.globalAlpha=1;ctx.strokeStyle='#888780';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();ctx.fillStyle=T;ctx.font='12px sans-serif';ctx.fillText(s,B[0]+4,B[1]-4);});
   if(gm!='N')gimbal(ang(t,gm));
-  const fA=s=>mv(Rof(ang(s,'A')),[1,0,0]),fB=s=>mv(Rof(ang(s,'B')),[1,0,0]),fC=s=>mv(RCat(s),[1,0,0]);
-  if(showC)trail(fC,t,'#D85A30',[5,4]);
-  trail(fA,t,'#BA7517');trail(fB,t,'#1D9E75');
-  const end=P(sc(mv(Rof([PS,TH]),[1,0,0]),L));ctx.globalAlpha=1;ctx.strokeStyle=T;ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(end[0],end[1],9,0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);
-  if(showC)arrow(sc(fC(t),L),'#D85A30',2.5);
-  arrow(sc(fA(t),L),'#BA7517',3);arrow(sc(fB(t),L),'#1D9E75',3);
-  ['A','B'].forEach(m=>{const k=m.toLowerCase(),a=ang(t,m),r=playing?rate(t,m):[0,0];
-    $(k+'1').textContent=(a[0]/D).toFixed(0)+'°, '+(a[1]/D).toFixed(0)+'°';
-    $(k+'2').textContent=f2(r[0])+', '+f2(r[1]);
-    $(k+'4').textContent=vec(pqr(a,r));
-    $(k+'3').textContent=vec(mv(Rof(a),[1,0,0]));});
-  if(showC){$('c3').textContent=vec(fC(t));$('c4').textContent=vec(playing?mvT(RCat(t),rateC(t)):[0,0,0]);}
+  const RA=s=>Rof(ang(s,'A')),RB=s=>Rof(ang(s,'B')),Rend=Rof(TG);
+  const sets=[];if(showC)sets.push([RCat,'#D85A30',[5,4]]);sets.push([RA,'#BA7517'],[RB,'#1D9E75']);
+  sets.forEach(([Rt,c,d])=>{if(showN)trail(Rt,[1,0,0],L,t,c,2.4,d);if(showW)trail(Rt,[0,1,0],LW,t,c,1.3,d||[2,3]);});
+  ctx.globalAlpha=1;ctx.strokeStyle=T;ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  if(showN){const e=P(sc(mv(Rend,[1,0,0]),L));ctx.beginPath();ctx.arc(e[0],e[1],9,0,2*Math.PI);ctx.stroke();}
+  if(showW){const e=P(sc(mv(Rend,[0,1,0]),LW));ctx.beginPath();ctx.arc(e[0],e[1],7,0,2*Math.PI);ctx.stroke();}
+  ctx.setLineDash([]);
+  sets.forEach(([Rt,c])=>{const M=Rt(t);if(showN)arrow(sc(mv(M,[1,0,0]),L),c,3);if(showW)arrow(sc(mv(M,[0,1,0]),LW),c,1.6);});
+  ['A','B'].forEach(m=>{const k=m.toLowerCase(),a=ang(t,m),r=rate(t,m),M=Rof(a);
+    $(k+'1').textContent=deg(a);$(k+'2').textContent=r.map(f2).join(', ');
+    $(k+'4').textContent=vec(pqr(a,r));$(k+'3').textContent=vec(mv(M,[1,0,0]));$(k+'5').textContent=vec(mv(M,[0,1,0]));});
+  if(showC){const M=RCat(t);$('c3').textContent=vec(mv(M,[1,0,0]));$('c5').textContent=vec(mv(M,[0,1,0]));$('c4').textContent=vec(mvT(M,rateC(t)));}
+  $('phase').innerHTML=phase(t);
 }
 function step(ts){if(!playing)return;if(last!==null){let v=+$('t').value+(ts-last)/1000*100*(+$('spd').value);if(v>=MX){v=MX;tog();}$('t').value=v;draw();}last=ts;if(playing)requestAnimationFrame(step);}
 function tog(){playing=!playing;$('play').textContent=playing?'Dừng':'Chạy';last=null;if(playing){if(+$('t').value>=MX)$('t').value=0;requestAnimationFrame(step);}else draw();}
@@ -296,7 +318,7 @@ cv.addEventListener('pointerdown',e=>{drag=[e.clientX,e.clientY,az,el];cv.setPoi
 cv.addEventListener('pointermove',e=>{if(!drag)return;az=drag[2]-(e.clientX-drag[0])*0.01;el=Math.max(-10*D,Math.min(80*D,drag[3]+(e.clientY-drag[1])*0.01));draw();});
 cv.addEventListener('pointerup',()=>drag=null);
 window.addEventListener('resize',resize);
-window.ER={setG,setC,tog,rebuild,draw};
+window.ER={setG,setC,setT,tog,rebuild,draw};
 rebuild();resize();
 })();
 </script>
